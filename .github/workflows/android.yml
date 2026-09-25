@@ -1,0 +1,292 @@
+================================================================
+FILE: .github/workflows/android.yml
+================================================================
+name: Android Build
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Android App
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Accept Android SDK licenses
+        run: yes | sdkmanager --licenses || true
+
+      - name: Make Gradle executable
+        working-directory: AmarOvertime-Android-Project-v1.1/AmarOvertimeAndroid
+        run: chmod +x gradlew
+
+      - name: Build Debug APK
+        working-directory: AmarOvertime-Android-Project-v1.1/AmarOvertimeAndroid
+        run: ./gradlew assembleDebug
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: AmarOvertime-debug-apk
+          path: AmarOvertime-Android-Project-v1.1/AmarOvertimeAndroid/app/build/outputs/apk/debug/*.apk
+
+
+================================================================
+FILE: ./AmarOvertime-Android-Project-v1.1/AmarOvertimeAndroid/PRIVACY_POLICY.md
+================================================================
+# Privacy Policy — আমার ওভার টাইম
+
+**Developer:** BORHAN  
+**App:** আমার ওভার টাইম
+
+## Data storage
+The app is designed to work offline. Worker names, salary settings and duty records are stored locally on the user's device using the app's local storage.
+
+## Data sharing
+The app does not include an online account or server/database in this version. Data is not automatically uploaded to the developer.
+
+## Backup and export
+If the user chooses Backup, Restore or CSV Export, the user controls where the exported file is saved and how it is shared. The developer does not receive those files automatically.
+
+## Contact
+Developer: BORHAN
+
+## Changes
+This policy may be updated when the app's data features change.
+
+
+================================================================
+FILE: ./AmarOvertime-Android-Project-v1.1/AmarOvertimeAndroid/README.md
+================================================================
+# আমার ওভার টাইম — Android App
+
+**App name:** আমার ওভার টাইম  
+**Developer:** BORHAN  
+**Application ID:** `com.borhan.amarot`  
+**Version:** 1.1 (versionCode 2)
+
+## Included
+- Supplied app icon and BORHAN branding
+- Bengali mobile-first dashboard
+- Monthly salary, OT, attendance bonus, late and night-bill calculation
+- Day / Night / Holiday / Leave / Sick / Absent duty records
+- Multiple Worker profiles
+- Worker-specific salary settings and duty history
+- Search, edit and delete records
+- CSV export to Android Downloads
+- Full JSON Backup / Restore through Android file picker
+- Offline-first local storage
+- Android 12+ splash screen configuration
+- targetSdk 36 / compileSdk 36
+
+## Open in Android Studio
+1. Open the project folder in Android Studio.
+2. Let Gradle sync finish.
+3. Connect an Android phone or start an emulator.
+4. Run the `app` configuration.
+
+## Generate Play Store AAB
+Use **Build → Generate Signed Bundle / APK → Android App Bundle**.
+Create your own upload/release keystore and keep it private. `keystore.properties.example` is provided as a template.
+
+## Privacy policy
+`PRIVACY_POLICY.md` contains the current offline-data privacy policy text. For Play Console, publish the policy at a public HTTPS URL (for example, from your own GitHub Pages site) and enter that URL in Play Console.
+
+## Important
+This project does not contain a signing key. A Play Store release must be signed with a keystore controlled by the developer.
+
+
+================================================================
+FILE: ./AmarOvertime-Android-Project-v1.1/AmarOvertimeAndroid/app/build.gradle
+================================================================
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.borhan.amarot'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'com.borhan.amarot'
+        minSdk 23
+        targetSdk 36
+        versionCode 2
+        versionName '1.0'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+
+
+================================================================
+FILE: ./AmarOvertime-Android-Project-v1.1/AmarOvertimeAndroid/app/proguard-rules.pro
+================================================================
+# No custom ProGuard rules yet.
+
+
+================================================================
+FILE: ./AmarOvertime-Android-Project-v1.1/AmarOvertimeAndroid/app/src/main/AndroidManifest.xml
+================================================================
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application
+        android:allowBackup="true"
+        android:fullBackupContent="true"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.AmarOvertime"
+        android:usesCleartextTraffic="false">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
+
+
+================================================================
+FILE: ./AmarOvertime-Android-Project-v1.1/AmarOvertimeAndroid/app/src/main/assets/app.js
+================================================================
+const KEY="amarOvertime_v2";
+let data=JSON.parse(localStorage.getItem(KEY)||'null');
+if(!data){data={activeWorkerId:1,workers:[{id:1,name:"আমার হিসাব",settings:{}}],records:{1:[]}};}
+if(!Array.isArray(data.workers)||!data.workers.length){data.workers=[{id:1,name:"আমার হিসাব",settings:{}}];data.activeWorkerId=1;}
+data.records=data.records||{};
+const $=id=>document.getElementById(id);const activeWorker=()=>data.workers.find(w=>w.id===data.activeWorkerId)||data.workers[0];
+function workerRecords(){const w=activeWorker();return data.records[w.id]||(data.records[w.id]=[])}
+function save(){localStorage.setItem(KEY,JSON.stringify(data));renderAll()}
+function todayLocal(){const d=new Date(),off=d.getTimezoneOffset();return new Date(d.getTime()-off*60000).toISOString().slice(0,10)}
+function money(n){return "৳"+(Number(n)||0).toFixed(2)}function fmtHours(n){return (Number(n)||0).toFixed(2)}
+function settings(){const w=activeWorker(),s=w.settings||{};return {salary:Number($('salary').value)||0,salaryDays:Number($('salaryDays').value)||26,regularHours:Number($('regularHours').value)||8,otMultiplier:2,attendanceBonus:Number($('attendanceBonus').value)||625,lateLimit:Number($('lateLimit').value)||15,nightBill:Number($('nightBill').value)||100}}
+function loadSettings(){const s=activeWorker().settings||{};for(const k of ['salary','salaryDays','regularHours','otMultiplier','attendanceBonus','lateLimit','nightBill'])if(s[k]!==undefined&&$(k))$(k).value=s[k];if(!$('salary').value)$('salary').value='15000'}
+function persistSettings(){activeWorker().settings=settings();localStorage.setItem(KEY,JSON.stringify(data));renderAll()}
+function minutes(t){const [h,m]=t.split(':').map(Number);return h*60+m}
+function duration(a,b){let x=minutes(a),y=minutes(b);if(y<=x)y+=1440;return y-x}
+function elapsedFromStart(inTime,outTime,clockTime){let start=minutes(inTime),end=minutes(outTime),point=minutes(clockTime);if(end<=start)end+=1440;if(point<start)point+=1440;return {end,start,point}}
+function lunchOverlapDay(inTime,outTime){let start=minutes(inTime),end=minutes(outTime);if(end<=start)end+=1440;let lunchStart=13*60,lunchEnd=14*60;if(lunchStart<start)lunchStart+=1440;if(lunchEnd<=start)lunchEnd+=1440;return Math.max(0,Math.min(end,lunchEnd)-Math.max(start,lunchStart))}
+function calculate(r){
+ const s=settings();
+ let regular=0,ot=0,late=0,early=false,night=0;
+ if(['leave','sick','absent'].includes(r.status))return{regular,ot,late,early,night};
+ if(!r.inTime||!r.outTime)return{regular,ot,late,early,night};
+
+ const totalMinutes=duration(r.inTime,r.outTime), totalHours=totalMinutes/60;
+ const inM=minutes(r.inTime),outM=minutes(r.outTime);
+
+ // Holiday Duty is a dedicated duty type. It can be a daytime or overnight
+ // holiday duty. Every worked minute is OT, except the fixed 13:00-14:00
+ // lunch period when the duty overlaps that period. No late is counted.
+ if(r.dutyType==='holiday'){
+   const lunchMinutes=lunchOverlapDay(r.inTime,r.outTime);
+   ot=Math.max(0,totalMinutes-lunchMinutes)/60;
+   late=0;
+   // Crossing midnight earns one Night Bill.
+   if(outM<=inM) night=s.nightBill;
+   return{regular,ot,late,early,night};
+ }
+
+ if(r.dutyType==='night'){
+   // A record explicitly marked Holiday also follows Holiday rules.
+   if(r.status==='holiday'){
+     ot=totalHours;
+   }else{
+     regular=Math.min(s.regularHours,totalHours);
+     ot=Math.max(0,totalHours-s.regularHours);
+   }
+   // Night Bill is earned whenever the duty crosses midnight.
+   if(outM<=inM) night=s.nightBill;
+ }else{
+   // Holiday status on an existing Day Duty remains supported for backward compatibility.
+   // Holiday work: all worked time is OT except 13:00-14:00 lunch.
+   if(r.status!=='holiday'){
+     // Normal Day Shift: general duty ends at 17:00.
+     // Convert Out to the following day when it crosses midnight.
+     let end=outM;
+     if(end<=inM) end+=1440;
+     let cutoff=17*60;
+     // Normal Day Duty starts at/around 08:00; keep cutoff on the same timeline.
+     if(cutoff<inM) cutoff+=1440;
+     const otMinutes=Math.max(0,end-cutoff);
+     ot=otMinutes/60;
+     regular=Math.min(s.regularHours,Math.max(0,totalHours-ot));
+   }else{
+     const lunchMinutes=lunchOverlapDay(r.inTime,r.outTime);
+     ot=Math.max(0,totalMinutes-lunchMinutes)/60;
+     late=0;
+   }
+   // Holiday and normal Day Duty crossing midnight earn Night Bill.
+   if(outM<=inM) night=s.nightBill;
+ }
+
+ // Holiday duty/status never contributes to monthly late.
+ if(r.dutyType==='holiday'||r.status==='holiday') late=0;
+ return{regular,ot,late,early,night};
+}
+function monthStats(){const s=settings(),ym=todayLocal().slice(0,7),rs=workerRecords().filter(r=>r.date.startsWith(ym));let present=0,absent=0,leave=0,holiday=0,regular=0,ot=0,late=0,night=0,early=false;rs.forEach(r=>{const c=calculate(r);if(r.status==='present' && r.dutyType!=='holiday')present++;else if(r.status==='absent')absent++;else if(['leave','sick'].includes(r.status))leave++;else if(r.status==='holiday'||r.dutyType==='holiday')holiday++; else if(r.status==='present')present++;regular+=c.regular;ot+=c.ot;late+=c.late;night+=c.night;if(c.early)early=true});const hourly=(s.salary*.5605)/(s.salaryDays*s.regularHours),otRate=hourly*2,otPay=ot*otRate,bonus=(late>=s.lateLimit||early)?0:s.attendanceBonus,total=s.salary+otPay+bonus+night;return{rs,present,absent,leave,holiday,regular,ot,late,night,hourly,otRate,otPay,bonus,total,early}}
+function stat(t,v,cls='',primary=false){return `<div class="stat ${primary?'primary':''}"><small>${t}</small><strong class="${cls}">${v}</strong></div>`}
+function renderDashboard(){const m=monthStats(),s=settings(),w=activeWorker();$('activeWorkerName').textContent=w.name;$('activeWorkerMeta').textContent=`${todayLocal().slice(0,7)} • মাসিক হিসাব`;$('dashboard').innerHTML=[stat('এই মাসের মোট বেতন',money(m.total),'',true),stat('Present',m.present),stat('Regular Hours',fmtHours(m.regular)),stat('OT Hours',fmtHours(m.ot)),stat('OT Rate',money(m.otRate)),stat('OT Wage',money(m.otPay)),stat('Late',m.late+' min',m.late>=s.lateLimit?'bad':''),stat('Night Bill',money(m.night)),stat('Attendance Bonus',money(m.bonus),m.bonus?'ok':'bad')].join('')}
+function renderToday(){const r=workerRecords().find(x=>x.date===todayLocal());if(!r){$('todayCard').innerHTML='<div class="empty">আজকের কোনো ডিউটি সেভ করা হয়নি।</div>';return}const c=calculate(r);$('todayCard').innerHTML=`<div class="today-row"><div><strong>${r.dutyType==='night'?'Night Duty':(r.dutyType==='holiday'?'Holiday Duty':'Day Duty')}</strong><br><span class="badge ${r.status}">${r.status}</span></div><div><b>OT ${fmtHours(c.ot)} h</b><br><small>${r.inTime||'-'} → ${r.outTime||'-'}</small></div></div>`}
+function renderRecent(){const rs=workerRecords().slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);$('recentRecords').innerHTML=rs.length?rs.map(r=>{const c=calculate(r);return `<div class="record-row" style="padding:10px 0;border-bottom:1px solid #e2e8f0"><div><b>${r.date}</b><br><small>${r.dutyType==='night'?'Night':(r.dutyType==='holiday'?'Holiday':'Day')} • ${r.status}</small></div><div><b>OT ${fmtHours(c.ot)}h</b><br><small>${money(c.night)}</small></div></div>`}).join(''):'<div class="empty">এখনও কোনো রেকর্ড নেই।</div>'}
+function renderRecords(){const q=($('recordSearch').value||'').toLowerCase();let rs=workerRecords().slice().sort((a,b)=>b.date.localeCompare(a.date));if(q)rs=rs.filter(r=>`${r.date} ${r.status} ${r.dutyType} ${r.notes||''}`.toLowerCase().includes(q));$('recordCount').textContent=`${rs.length}টি রেকর্ড`;$('records').innerHTML=rs.map(r=>{const c=calculate(r);return `<tr><td>${r.date}</td><td>${r.dutyType==='night'?'Night':(r.dutyType==='holiday'?'Holiday':'Day')}</td><td>${r.status}</td><td>${r.inTime||'-'}</td><td>${r.outTime||'-'}</td><td>${fmtHours(c.regular)}</td><td>${fmtHours(c.ot)}</td><td>${c.late}</td><td>${money(c.night)}</td><td><button class="mini secondary" onclick="editRecord(${r.id})">Edit</button> <button class="mini danger" onclick="deleteRecord(${r.id})">Delete</button></td></tr>`}).join('')||'<tr><td colspan="10" class="empty">কোনো রেকর্ড পাওয়া যায়নি।</td></tr>'}
+function renderWorkers(){const list=$('workerList');list.innerHTML=data.workers.map(w=>`<div class="worker-item"><div><b>${escapeHtml(w.name)}</b><div class="meta">${w.id===data.activeWorkerId?'✓ Active Worker':''}</div></div><div class="worker-actions"><button onclick="selectWorker(${w.id})">${w.id===data.activeWorkerId?'Active':'Select'}</button>${data.workers.length>1?`<button class="danger" onclick="deleteWorker(${w.id})">Delete</button>`:''}</div></div>`).join('')}
+function escapeHtml(s){return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+function renderAll(){loadSettings();renderDashboard();renderToday();renderRecent();renderRecords();renderWorkers()}
+function showPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===id));document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.page===id));window.scrollTo(0,0)}
+function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(window._toast);window._toast=setTimeout(()=>t.classList.remove('show'),2200)}
+function setDefaults(){if($('date'))$('date').value=todayLocal();$('inTime').value='08:00';$('outTime').value='17:00'}
+$('dutyType').addEventListener('change',()=>{if($('dutyType').value==='day'){$('inTime').value='08:00';$('outTime').value='17:00';$('status').value='present'}else if($('dutyType').value==='night'){$('inTime').value='20:00';$('outTime').value='04:00';$('status').value='present'}else{$('inTime').value='08:00';$('outTime').value='17:00';$('status').value='holiday'}});
+$('dutyForm').addEventListener('submit',e=>{e.preventDefault();const r={id:Date.now(),date:$('date').value,dutyType:$('dutyType').value,status:$('status').value,inTime:$('inTime').value,outTime:$('outTime').value,notes:$('notes').value};const rs=workerRecords(),i=rs.findIndex(x=>x.date===r.date);if(i>=0)rs[i]=r;else rs.push(r);rs.sort((a,b)=>a.date.localeCompare(b.date));save();setDefaults();$('notes').value='';toast('ডিউটি সেভ হয়েছে');showPage('homePage')});
+$('clearBtn').onclick=()=>{$('dutyForm').reset();setDefaults()};
+$('recordSearch').addEventListener('input',renderRecords);['salary','salaryDays','regularHours','otMultiplier','attendanceBonus','lateLimit','nightBill'].forEach(id=>$(id).addEventListener('input',persistSettings));
+$('addWorkerBtn').onclick=()=>{const name=$('workerName').value.trim();if(!name)return toast('Worker-এর নাম দিন');const id=Date.now();data.workers.push({id,name,settings:{}});data.records[id]=[];data.activeWorkerId=id;$('workerName').value='';save();toast('Worker যোগ হয়েছে')};
+window.selectWorker=id=>{data.activeWorkerId=id;save();toast('Active Worker পরিবর্তন হয়েছে');showPage('homePage')};
+window.deleteWorker=id=>{if(data.workers.length<=1)return toast('কমপক্ষে একজন Worker থাকতে হবে');if(!confirm('এই Worker এবং তার সব record মুছবেন?'))return;data.workers=data.workers.filter(w=>w.id!==id);delete data.records[id];data.activeWorkerId=data.workers[0].id;save()};
+window.editRecord=id=>{const r=workerRecords().find(x=>x.id===id);if(!r)return;$('date').value=r.date;$('dutyType').value=r.dutyType;$('status').value=r.status;$('inTime').value=r.inTime||'';$('outTime').value=r.outTime||'';$('notes').value=r.notes||'';data.records[activeWorker().id]=workerRecords().filter(x=>x.id!==id);localStorage.setItem(KEY,JSON.stringify(data));showPage('dutyPage');window.scrollTo(0,0)};
+window.deleteRecord=id=>{if(confirm('এই record মুছবেন?')){data.records[activeWorker().id]=workerRecords().filter(x=>x.id!==id);save();toast('Record মুছে ফেলা হয়েছে')}};
+$('clearAllBtn').onclick=()=>{if(confirm('এই Worker-এর সব record মুছবেন?')){data.records[activeWorker().id]=[];save();toast('সব record মুছে গেছে')}};
+function downloadNative(content,fileName,mime){const bytes=new TextEncoder().encode(content);let bin='';bytes.forEach(b=>bin+=String.fromCharCode(b));const base64=btoa(bin);if(window.AndroidApp&&AndroidApp.saveFile)AndroidApp.saveFile(base64,fileName,mime);else{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type:mime}));a.download=fileName;a.click()}}
+$('exportBtn').onclick=()=>{const rows=[['Date','Duty Type','Status','In','Out','Regular Hours','OT Hours','Late Minutes','Night Bill','Notes']];workerRecords().forEach(r=>{const c=calculate(r);rows.push([r.date,r.dutyType,r.status,r.inTime,r.outTime,c.regular,c.ot,c.late,c.night,r.notes||''])});const csv='\ufeff'+rows.map(row=>row.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n');downloadNative(csv,'amar-overtime-records.csv','text/csv;charset=utf-8');toast('CSV export করা হয়েছে')};
+$('backupBtn').onclick=()=>downloadNative(JSON.stringify(data,null,2),'amar-overtime-backup.json','application/json');
+$('restoreBtn').onclick=()=>{if(window.AndroidApp&&AndroidApp.openBackup)AndroidApp.openBackup();else toast('Android app থেকেই Restore করুন')};
+window.importBackup=json=>{try{const incoming=JSON.parse(json);if(!incoming.workers||!incoming.records)throw Error();data=incoming;localStorage.setItem(KEY,JSON.stringify(data));renderAll();toast('Backup সফলভাবে Restore হয়েছে')}catch(e){toast('Backup ফাইলটি সঠিক নয়')}};
+$('quickWorkerBtn').onclick=()=>showPage('settingsPage');document.querySelectorAll('[data-page]').forEach(b=>b.addEventListener('click',()=>showPage(b.dataset.page)));
+function tick(){$('clock').textContent=new Date().toLocaleString('bn-BD',{dateStyle:'medium',timeStyle:'short'})}setInterval(tick,1000);tick();setDefaults();renderAll();
+
+
+================================================================
+FILE: ./AmarOvertime-Android-Project-v1.1/AmarOvertimeAndroid/app/src/main/assets/index.html
+================================================================
